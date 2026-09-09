@@ -331,7 +331,9 @@ type UserTagMetadata struct {
 	// When unset, the default tag color is used.
 	BackgroundColor *color.Color `protobuf:"bytes,1,opt,name=background_color,json=backgroundColor,proto3" json:"background_color,omitempty"`
 	// Whether memos with this tag should have their content blurred.
-	BlurContent   bool `protobuf:"varint,2,opt,name=blur_content,json=blurContent,proto3" json:"blur_content,omitempty"`
+	BlurContent bool `protobuf:"varint,2,opt,name=blur_content,json=blurContent,proto3" json:"blur_content,omitempty"`
+	// Optional display alias shown instead of raw tag when alias mode is active.
+	Alias         string `protobuf:"bytes,3,opt,name=alias,proto3" json:"alias,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -378,6 +380,13 @@ func (x *UserTagMetadata) GetBlurContent() bool {
 		return x.BlurContent
 	}
 	return false
+}
+
+func (x *UserTagMetadata) GetAlias() string {
+	if x != nil {
+		return x.Alias
+	}
+	return ""
 }
 
 type TagsUserSetting struct {
@@ -1110,10 +1119,11 @@ const file_store_user_setting_proto_rawDesc = "" +
 	"\x06locale\x18\x01 \x01(\tR\x06locale\x12'\n" +
 	"\x0fmemo_visibility\x18\x02 \x01(\tR\x0ememoVisibility\x12\x14\n" +
 	"\x05theme\x18\x03 \x01(\tR\x05theme\x12.\n" +
-	"\x13save_media_metadata\x18\x04 \x01(\bR\x11saveMediaMetadata\"s\n" +
+	"\x13save_media_metadata\x18\x04 \x01(\bR\x11saveMediaMetadata\"\x89\x01\n" +
 	"\x0fUserTagMetadata\x12=\n" +
 	"\x10background_color\x18\x01 \x01(\v2\x12.google.type.ColorR\x0fbackgroundColor\x12!\n" +
-	"\fblur_content\x18\x02 \x01(\bR\vblurContent\"\xa4\x01\n" +
+	"\fblur_content\x18\x02 \x01(\bR\vblurContent\x12\x14\n" +
+	"\x05alias\x18\x03 \x01(\tR\x05alias\"\xa4\x01\n" +
 	"\x0fTagsUserSetting\x12:\n" +
 	"\x04tags\x18\x01 \x03(\v2&.memos.store.TagsUserSetting.TagsEntryR\x04tags\x1aU\n" +
 	"\tTagsEntry\x12\x10\n" +
