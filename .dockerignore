@@ -8,8 +8,9 @@ coverage.out
 /.pnpm-store/
 /.worktrees/
 
-# Not used by the image build
-/web/
+# Not used by the backend-only image build
+# /web/ is no longer excluded — needed for the full Dockerfile
+# that builds both frontend and backend.
 /docs/
 /.github/
 *.md
