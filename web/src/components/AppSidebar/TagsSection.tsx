@@ -13,8 +13,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAuth } from "@/contexts/AuthContext";
 import { useMemoFilterContext } from "@/contexts/MemoFilterContext";
 import { useLocalStorage, useOverflowTitle } from "@/hooks";
-import { resolveTagAlias, ALIAS_MODE_KEY } from "@/lib/tag";
+import { resolveTagAlias } from "@/lib/tag";
 import { cn } from "@/lib/utils";
+import { useAliasMode } from "@/contexts/AliasModeContext";
 import { useTranslate } from "@/utils/i18n";
 import TagTree, { tagRowAriaLabel } from "../TagTree";
 import {
@@ -95,7 +96,7 @@ const TagsSection = ({ tagCount, onSelect, scope }: Props) => {
   const { userTagsSetting } = useAuth();
   const { getFiltersByFactor, addFilter, removeFilter } = useMemoFilterContext();
   const [treeMode, setTreeMode] = useLocalStorage<boolean>("tag-view-as-tree", false);
-  const [aliasMode, setAliasMode] = useLocalStorage<boolean>(ALIAS_MODE_KEY, false);
+  const { aliasMode, toggleAliasMode } = useAliasMode();
   const activeTags = new Set(getFiltersByFactor("tagSearch").map((filter) => filter.value));
   const activeTag = activeTags.values().next().value as string | undefined;
   const tags = useMemo(() => Object.entries(tagCount).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])), [tagCount]);
@@ -145,7 +146,7 @@ const TagsSection = ({ tagCount, onSelect, scope }: Props) => {
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={aliasMode}
-                onCheckedChange={setAliasMode}
+                onCheckedChange={toggleAliasMode}
                 closeOnClick
                 className="ps-2 pe-7 [&>span]:start-auto [&>span]:end-2"
               >

@@ -5,10 +5,10 @@ import { type MemoFilter, stringifyFilters, useMemoFilterContext } from "@/conte
 import useNavigateTo from "@/hooks/useNavigateTo";
 import { colorToHex } from "@/lib/color";
 import { tagStyles } from "@/lib/markdownStyles";
-import { findTagMetadata, resolveTagAlias, ALIAS_MODE_KEY } from "@/lib/tag";
+import { findTagMetadata, resolveTagAlias } from "@/lib/tag";
 import { cn } from "@/lib/utils";
 import { Routes } from "@/router";
-import { useLocalStorage } from "@/hooks";
+import { useAliasMode } from "@/contexts/AliasModeContext";
 import { useMemoViewContext } from "../MemoView/MemoViewContext";
 import { isMemoResourcePath, withMemoFilter } from "../MemoView/navigation";
 
@@ -24,7 +24,7 @@ export const Tag: React.FC<TagProps> = ({ "data-tag": dataTag, children, classNa
   const navigateTo = useNavigateTo();
   const { getFiltersByFactor, removeFilter, addFilter } = useMemoFilterContext();
   const { userTagsSetting } = useAuth();
-  const [aliasMode] = useLocalStorage<boolean>(ALIAS_MODE_KEY, false);
+  const { aliasMode } = useAliasMode();
 
   const tag = dataTag || "";
 

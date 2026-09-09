@@ -12,9 +12,10 @@ import {
   sidebarRowStateClasses,
 } from "@/components/AppSidebar/SidebarRow";
 import { useLocalStorage, useOverflowTitle } from "@/hooks";
-import { resolveTagAlias, ALIAS_MODE_KEY } from "@/lib/tag";
+import { resolveTagAlias } from "@/lib/tag";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAliasMode } from "@/contexts/AliasModeContext";
 import { useTranslate } from "@/utils/i18n";
 
 /** Matches the memo outline's indent, the app's other nested rail list. */
@@ -118,7 +119,7 @@ interface TagItemProps {
 const TagItem = ({ tag, depth, activeTag, expanded, onTagClick, onToggle }: TagItemProps) => {
   const t = useTranslate();
   const { userTagsSetting } = useAuth();
-  const [aliasMode] = useLocalStorage<boolean>(ALIAS_MODE_KEY, false);
+  const { aliasMode } = useAliasMode();
   const isTag = tag.amount !== undefined;
   const isActive = activeTag === tag.text;
   const isAncestorOfActiveTag = activeTag?.startsWith(`${tag.text}/`) ?? false;
