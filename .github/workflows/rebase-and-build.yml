@@ -75,7 +75,7 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Push rebased branch
-        if: success() && ${{ inputs.push_rebase }}
+        if: success() && inputs.push_rebase
         run: git push origin HEAD:refs/heads/${{ inputs.output_branch }} --force-with-lease
 
   # ── Step 2: Build frontend ─────────────────────────────────────────────────
@@ -87,7 +87,7 @@ jobs:
         with:
           ref: ${{ needs.rebase.outputs.rebased_sha }}
 
-      - uses: pnpm/action-setup@v4.2.0
+      - uses: pnpm/action-setup@v4
         with:
           version: 11.0.1
 
