@@ -1,0 +1,218 @@
+name: Rebase & Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: "Branch with your changes (default: main)"
+        required: false
+        default: "main"
+      target_branch:
+        description: "Upstream branch to rebase onto (default: main)"
+        required: false
+        default: "main"
+      output_branch:
+        description: "Branch to push rebased result to (default: fork-main)"
+        required: false
+        default: "fork-main"
+      push_image:
+        description: "Push image after build"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.repository }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # ── Step 1: Rebase onto upstream ───────────────────────────────────────────
+  rebase:
+    runs-on: ubuntu-latest
+    outputs:
+      rebased_sha: ${{ steps.rebase.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_branch }}
+          fetch-depth: 0
+          token: ${{ secrets.REBASE_TOKEN }}  # PAT with repo scope, NOT GITHUB_TOKEN
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream
+        run: git remote add upstream https://github.com/usememos/memos.git
+
+      - name: Fetch upstream
+        run: git fetch upstream
+
+      - name: Rebase
+        id: rebase
+        run: |
+          git rebase upstream/${{ inputs.target_branch }}
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Push rebased branch
+        if: success()
+        run: git push origin HEAD:refs/heads/${{ inputs.output_branch }} --force-with-lease
+
+  # ── Step 2: Build frontend ─────────────────────────────────────────────────
+  build-frontend:
+    needs: rebase
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.rebase.outputs.rebased_sha }}
+
+      - uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 11.0.1
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: "web/pnpm-lock.yaml"
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('web/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - run: pnpm install --no-frozen-lockfile
+        working-directory: web
+
+      - name: Build frontend
+        run: pnpm release
+        working-directory: web
+
+      - name: Upload frontend artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: frontend-dist
+          path: server/router/frontend/dist
+          retention-days: 1
+
+  # ── Step 3: Build & push container image ───────────────────────────────────
+  build-push:
+    needs: [rebase, build-frontend]
+    if: inputs.push_image == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.rebase.outputs.rebased_sha }}
+          fetch-depth: 0
+
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: frontend-dist
+          path: server/router/frontend/dist
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./scripts/Dockerfile
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            VERSION=fork-${{ github.run_number }}
+            COMMIT=${{ needs.rebase.outputs.rebased_sha }}
+          cache-from: type=gha,scope=fork-build-${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=fork-build-${{ matrix.platform }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v6
+        with:
+          name: digests-${{ strategy.job-index }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ── Step 4: Create multi-arch manifest ─────────────────────────────────────
+  merge:
+    needs: build-push
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v7
+        with:
+          pattern: digests-*
+          merge-multiple: true
+          path: /tmp/digests
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          flavor: latest=false
+          tags: |
+            type=raw,value=fork-latest
+            type=raw,value=fork-{{date 'YYYYMMDD'}}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
+        env:
+          DOCKER_METADATA_OUTPUT_JSON: ${{ steps.meta.outputs.json }}
+
+      - name: Inspect image
+        run: docker buildx imagetools inspect ghcr.io/${{ github.repository }}:fork-latest
