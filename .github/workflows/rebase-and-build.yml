@@ -6,7 +6,11 @@ on:
       source_branch:
         description: "Branch with your changes (default: main)"
         required: false
-        default: "main"
+        default: "fork-dev"
+      upstream_repository:
+        description: "The upstream repository to rebase onto (default: https://github.com/usememos/memos.git)"
+        required: false
+        default: "https://github.com/usememos/memos.git"
       target_branch:
         description: "Upstream branch to rebase onto (default: main)"
         required: false
@@ -15,10 +19,22 @@ on:
         description: "Branch to push rebased result to (default: fork-main)"
         required: false
         default: "fork-main"
+      push_rebase:
+        description: "Push rebased branch"
+        required: false
+        default: true
       push_image:
         description: "Push image after build"
         type: boolean
         default: true
+      image_name:
+        description: "Container image name (default: ghcr.io/<owner>/<repo>)"
+        required: false
+        default: ""
+      image_tag:
+        description: "Primary image tag (default: fork-latest)"
+        required: false
+        default: "fork-latest"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.repository }}
@@ -47,7 +63,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Add upstream
-        run: git remote add upstream https://github.com/usememos/memos.git
+        run: git remote add upstream ${{ inputs.upstream_repository }}
 
       - name: Fetch upstream
         run: git fetch upstream
@@ -59,7 +75,7 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Push rebased branch
-        if: success()
+        if: success() && ${{ inputs.push_rebase }}
         run: git push origin HEAD:refs/heads/${{ inputs.output_branch }} --force-with-lease
 
   # ── Step 2: Build frontend ─────────────────────────────────────────────────
@@ -122,6 +138,16 @@ jobs:
           - linux/amd64
           - linux/arm64
     steps:
+      - name: Resolve image name
+        id: image
+        run: |
+          name="${{ inputs.image_name }}"
+          if [ -z "$name" ]; then
+            name="ghcr.io/${{ github.repository }}"
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "registry=${name%%/*}" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v6
         with:
           ref: ${{ needs.rebase.outputs.rebased_sha }}
@@ -137,10 +163,10 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Login to GHCR
+      - name: Login to registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ steps.image.outputs.registry }}
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
@@ -156,7 +182,7 @@ jobs:
             COMMIT=${{ needs.rebase.outputs.rebased_sha }}
           cache-from: type=gha,scope=fork-build-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=fork-build-${{ matrix.platform }}
-          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ steps.image.outputs.name }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
         run: |
@@ -179,6 +205,16 @@ jobs:
     permissions:
       packages: write
     steps:
+      - name: Resolve image name
+        id: image
+        run: |
+          name="${{ inputs.image_name }}"
+          if [ -z "$name" ]; then
+            name="ghcr.io/${{ github.repository }}"
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "registry=${name%%/*}" >> "$GITHUB_OUTPUT"
+
       - name: Download digests
         uses: actions/download-artifact@v7
         with:
@@ -193,16 +229,16 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ steps.image.outputs.name }}
           flavor: latest=false
           tags: |
-            type=raw,value=fork-latest
-            type=raw,value=fork-{{date 'YYYYMMDD'}}
+            type=raw,value=${{ inputs.image_tag }}
+            type=raw,value=${{ inputs.image_tag }}-{{date 'YYYYMMDD'}}
 
-      - name: Login to GHCR
+      - name: Login to registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ steps.image.outputs.registry }}
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
@@ -210,9 +246,9 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
+            $(printf '${{ steps.image.outputs.name }}@sha256:%s ' *)
         env:
           DOCKER_METADATA_OUTPUT_JSON: ${{ steps.meta.outputs.json }}
 
       - name: Inspect image
-        run: docker buildx imagetools inspect ghcr.io/${{ github.repository }}:fork-latest
+        run: docker buildx imagetools inspect ${{ steps.image.outputs.name }}:${{ inputs.image_tag }}
