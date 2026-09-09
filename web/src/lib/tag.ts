@@ -52,6 +52,23 @@ export const findTagMetadata = (tag: string, tagsSetting: UserSetting_TagsSettin
 };
 
 /**
+ * Resolves the display alias for a tag. When alias mode is active and the tag
+ * has a configured alias, returns the alias; otherwise returns undefined.
+ */
+export const resolveTagAlias = (
+  tag: string,
+  tagsSetting: UserSetting_TagsSetting | undefined,
+  aliasMode: boolean,
+): string | undefined => {
+  if (!aliasMode || !tagsSetting) return undefined;
+  const meta = findTagMetadata(tag, tagsSetting);
+  return meta?.alias || undefined;
+};
+
+/** localStorage key for the global alias-mode toggle. */
+export const ALIAS_MODE_KEY = "tag-alias-mode";
+
+/**
  * Returns true if the given string is a valid, ReDoS-safe JavaScript regex pattern.
  *
  * Rejects patterns with nested quantifiers (e.g. `(a+)+`) which can cause

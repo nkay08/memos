@@ -5,9 +5,10 @@ import { type MemoFilter, stringifyFilters, useMemoFilterContext } from "@/conte
 import useNavigateTo from "@/hooks/useNavigateTo";
 import { colorToHex } from "@/lib/color";
 import { tagStyles } from "@/lib/markdownStyles";
-import { findTagMetadata } from "@/lib/tag";
+import { findTagMetadata, resolveTagAlias, ALIAS_MODE_KEY } from "@/lib/tag";
 import { cn } from "@/lib/utils";
 import { Routes } from "@/router";
+import { useLocalStorage } from "@/hooks";
 import { useMemoViewContext } from "../MemoView/MemoViewContext";
 import { isMemoResourcePath, withMemoFilter } from "../MemoView/navigation";
 
@@ -23,6 +24,7 @@ export const Tag: React.FC<TagProps> = ({ "data-tag": dataTag, children, classNa
   const navigateTo = useNavigateTo();
   const { getFiltersByFactor, removeFilter, addFilter } = useMemoFilterContext();
   const { userTagsSetting } = useAuth();
+  const [aliasMode] = useLocalStorage<boolean>(ALIAS_MODE_KEY, false);
 
   const tag = dataTag || "";
 
@@ -31,6 +33,7 @@ export const Tag: React.FC<TagProps> = ({ "data-tag": dataTag, children, classNa
   // Text uses a darkened variant (40% color + black) for contrast on light backgrounds.
   const metadata = userTagsSetting ? findTagMetadata(tag, userTagsSetting) : undefined;
   const bgHex = colorToHex(metadata?.backgroundColor);
+  const alias = resolveTagAlias(tag, userTagsSetting, aliasMode);
   const tagStyle: React.CSSProperties | undefined = bgHex
     ? {
         borderColor: bgHex,
@@ -70,7 +73,7 @@ export const Tag: React.FC<TagProps> = ({ "data-tag": dataTag, children, classNa
       {...props}
       onClick={handleTagClick}
     >
-      {children}
+      {alias || children}
     </span>
   );
 };

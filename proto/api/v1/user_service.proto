@@ -516,6 +516,8 @@ message UserSetting {
     google.type.Color background_color = 1 [(google.api.field_behavior) = OPTIONAL];
     // Whether memos with this tag should have their content blurred.
     bool blur_content = 2 [(google.api.field_behavior) = OPTIONAL];
+    // Optional display alias shown instead of raw tag when alias mode is active.
+    string alias = 3 [(google.api.field_behavior) = OPTIONAL];
   }
 
   // User-specific tag metadata.

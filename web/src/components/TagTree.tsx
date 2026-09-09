@@ -12,7 +12,9 @@ import {
   sidebarRowStateClasses,
 } from "@/components/AppSidebar/SidebarRow";
 import { useLocalStorage, useOverflowTitle } from "@/hooks";
+import { resolveTagAlias, ALIAS_MODE_KEY } from "@/lib/tag";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTranslate } from "@/utils/i18n";
 
 /** Matches the memo outline's indent, the app's other nested rail list. */
@@ -115,11 +117,14 @@ interface TagItemProps {
 
 const TagItem = ({ tag, depth, activeTag, expanded, onTagClick, onToggle }: TagItemProps) => {
   const t = useTranslate();
+  const { userTagsSetting } = useAuth();
+  const [aliasMode] = useLocalStorage<boolean>(ALIAS_MODE_KEY, false);
   const isTag = tag.amount !== undefined;
   const isActive = activeTag === tag.text;
   const isAncestorOfActiveTag = activeTag?.startsWith(`${tag.text}/`) ?? false;
   const hasSubTags = tag.subTags.length > 0;
   const open = hasSubTags && expanded.has(tag.text);
+  const displayName = isTag ? (resolveTagAlias(tag.text, userTagsSetting, aliasMode) ?? tag.key) : tag.key;
   const { ref: labelRef, title } = useOverflowTitle<HTMLSpanElement>(isTag ? `#${tag.text}` : tag.text);
   const tagLabel = tag.amount !== undefined ? tagRowAriaLabel(t, tag.text, tag.amount) : undefined;
   const state = isActive ? "checked" : "idle";
@@ -167,7 +172,7 @@ const TagItem = ({ tag, depth, activeTag, expanded, onTagClick, onToggle }: TagI
           >
             {!hasSubTags && <SidebarRowIconSlot icon={HashIcon} />}
             <span ref={labelRef} className="min-w-0 flex-1 truncate">
-              {tag.key}
+              {displayName}
             </span>
             <span className={SIDEBAR_ROW_COUNT_RAIL_CLASSES}>{tag.amount}</span>
           </button>

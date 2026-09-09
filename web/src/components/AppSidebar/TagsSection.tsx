@@ -1,4 +1,4 @@
-import { HashIcon, ListTreeIcon, MoreHorizontalIcon } from "lucide-react";
+import { HashIcon, ListTreeIcon, MoreHorizontalIcon, PencilIcon } from "lucide-react";
 import { forwardRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,8 +10,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/contexts/AuthContext";
 import { useMemoFilterContext } from "@/contexts/MemoFilterContext";
 import { useLocalStorage, useOverflowTitle } from "@/hooks";
+import { resolveTagAlias, ALIAS_MODE_KEY } from "@/lib/tag";
 import { cn } from "@/lib/utils";
 import { useTranslate } from "@/utils/i18n";
 import TagTree, { tagRowAriaLabel } from "../TagTree";
@@ -31,7 +33,16 @@ interface Props {
   scope: string;
 }
 
-const TagPath = forwardRef<HTMLSpanElement, { tag: string }>(({ tag }, ref) => {
+const TagPath = forwardRef<HTMLSpanElement, { tag: string; alias?: string }>(({ tag, alias }, ref) => {
+  // When alias mode is active and an alias exists, show the alias instead.
+  if (alias) {
+    return (
+      <span ref={ref} className="min-w-0 flex-1 truncate text-start italic">
+        {alias}
+      </span>
+    );
+  }
+
   const segments = tag.split("/");
 
   return (
@@ -53,10 +64,11 @@ interface FlatTagRowProps {
   active: boolean;
   /** Computed by the parent, which already holds the translator — rows stay subscription-free. */
   ariaLabel: string;
+  alias?: string;
   onClick: () => void;
 }
 
-const FlatTagRow = ({ tag, amount, active, ariaLabel, onClick }: FlatTagRowProps) => {
+const FlatTagRow = ({ tag, amount, active, ariaLabel, alias, onClick }: FlatTagRowProps) => {
   const { ref, title } = useOverflowTitle<HTMLSpanElement>(`#${tag}`);
   const state = active ? "checked" : "idle";
 
@@ -72,7 +84,7 @@ const FlatTagRow = ({ tag, amount, active, ariaLabel, onClick }: FlatTagRowProps
     >
       {/* Same leading slot as the tree, so the # marks hold their line when switching modes. */}
       <SidebarRowIconSlot icon={HashIcon} />
-      <TagPath ref={ref} tag={tag} />
+      <TagPath ref={ref} tag={tag} alias={alias} />
       <span className={SIDEBAR_ROW_COUNT_RAIL_CLASSES}>{amount}</span>
     </button>
   );
@@ -80,8 +92,10 @@ const FlatTagRow = ({ tag, amount, active, ariaLabel, onClick }: FlatTagRowProps
 
 const TagsSection = ({ tagCount, onSelect, scope }: Props) => {
   const t = useTranslate();
+  const { userTagsSetting } = useAuth();
   const { getFiltersByFactor, addFilter, removeFilter } = useMemoFilterContext();
   const [treeMode, setTreeMode] = useLocalStorage<boolean>("tag-view-as-tree", false);
+  const [aliasMode, setAliasMode] = useLocalStorage<boolean>(ALIAS_MODE_KEY, false);
   const activeTags = new Set(getFiltersByFactor("tagSearch").map((filter) => filter.value));
   const activeTag = activeTags.values().next().value as string | undefined;
   const tags = useMemo(() => Object.entries(tagCount).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])), [tagCount]);
@@ -129,6 +143,15 @@ const TagsSection = ({ tagCount, onSelect, scope }: Props) => {
                 <ListTreeIcon className="text-muted-foreground" strokeWidth={1.8} />
                 {t("common.tree-mode")}
               </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={aliasMode}
+                onCheckedChange={setAliasMode}
+                closeOnClick
+                className="ps-2 pe-7 [&>span]:start-auto [&>span]:end-2"
+              >
+                <PencilIcon className="text-muted-foreground" strokeWidth={1.8} />
+                {t("common.alias-mode", "Alias mode")}
+              </DropdownMenuCheckboxItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -145,6 +168,7 @@ const TagsSection = ({ tagCount, onSelect, scope }: Props) => {
               amount={amount}
               active={activeTags.has(tag)}
               ariaLabel={tagRowAriaLabel(t, tag, amount)}
+              alias={aliasMode ? resolveTagAlias(tag, userTagsSetting, aliasMode) : undefined}
               onClick={() => handleTagClick(tag)}
             />
           ))}

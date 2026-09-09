@@ -3526,7 +3526,9 @@ type UserSetting_TagMetadata struct {
 	// When unset, the default tag color is used.
 	BackgroundColor *color.Color `protobuf:"bytes,1,opt,name=background_color,json=backgroundColor,proto3" json:"background_color,omitempty"`
 	// Whether memos with this tag should have their content blurred.
-	BlurContent   bool `protobuf:"varint,2,opt,name=blur_content,json=blurContent,proto3" json:"blur_content,omitempty"`
+	BlurContent bool `protobuf:"varint,2,opt,name=blur_content,json=blurContent,proto3" json:"blur_content,omitempty"`
+	// Optional display alias shown instead of raw tag when alias mode is active.
+	Alias         string `protobuf:"bytes,3,opt,name=alias,proto3" json:"alias,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3573,6 +3575,13 @@ func (x *UserSetting_TagMetadata) GetBlurContent() bool {
 		return x.BlurContent
 	}
 	return false
+}
+
+func (x *UserSetting_TagMetadata) GetAlias() string {
+	if x != nil {
+		return x.Alias
+	}
+	return ""
 }
 
 // User-specific tag metadata.
@@ -4063,7 +4072,7 @@ const file_api_v1_user_service_proto_rawDesc = "" +
 	"\x06filter\x18\x02 \x01(\tB\x03\xe0A\x01R\x06filterJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\x05spaceR\n" +
 	"unassigned\"I\n" +
 	"\x18ListAllUserStatsResponse\x12-\n" +
-	"\x05stats\x18\x01 \x03(\v2\x17.memos.api.v1.UserStatsR\x05stats\"\xf1\a\n" +
+	"\x05stats\x18\x01 \x03(\v2\x17.memos.api.v1.UserStatsR\x05stats\"\x8d\b\n" +
 	"\vUserSetting\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tB\x03\xe0A\bR\x04name\x12S\n" +
 	"\x0fgeneral_setting\x18\x02 \x01(\v2(.memos.api.v1.UserSetting.GeneralSettingH\x00R\x0egeneralSetting\x12V\n" +
@@ -4073,10 +4082,11 @@ const file_api_v1_user_service_proto_rawDesc = "" +
 	"\x06locale\x18\x01 \x01(\tB\x03\xe0A\x01R\x06locale\x12,\n" +
 	"\x0fmemo_visibility\x18\x03 \x01(\tB\x03\xe0A\x01R\x0ememoVisibility\x12\x19\n" +
 	"\x05theme\x18\x04 \x01(\tB\x03\xe0A\x01R\x05theme\x123\n" +
-	"\x13save_media_metadata\x18\x05 \x01(\bB\x03\xe0A\x01R\x11saveMediaMetadata\x1ay\n" +
+	"\x13save_media_metadata\x18\x05 \x01(\bB\x03\xe0A\x01R\x11saveMediaMetadata\x1a\x94\x01\n" +
 	"\vTagMetadata\x12B\n" +
 	"\x10background_color\x18\x01 \x01(\v2\x12.google.type.ColorB\x03\xe0A\x01R\x0fbackgroundColor\x12&\n" +
-	"\fblur_content\x18\x02 \x01(\bB\x03\xe0A\x01R\vblurContent\x1a\xb7\x01\n" +
+	"\fblur_content\x18\x02 \x01(\bB\x03\xe0A\x01R\vblurContent\x12\x19\n" +
+	"\x05alias\x18\x03 \x01(\tB\x03\xe0A\x01R\x05alias\x1a\xb7\x01\n" +
 	"\vTagsSetting\x12H\n" +
 	"\x04tags\x18\x01 \x03(\v2/.memos.api.v1.UserSetting.TagsSetting.TagsEntryB\x03\xe0A\x01R\x04tags\x1a^\n" +
 	"\tTagsEntry\x12\x10\n" +

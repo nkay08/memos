@@ -38,14 +38,17 @@ const hexToColor = (hex: string) =>
 interface LocalTagMeta {
   color?: string;
   blur: boolean;
+  alias: string;
 }
 
 const toLocalTagMeta = (meta: {
   backgroundColor?: { red?: number; green?: number; blue?: number };
   blurContent: boolean;
+  alias?: string;
 }): LocalTagMeta => ({
   color: colorToHex(meta.backgroundColor),
   blur: meta.blurContent,
+  alias: meta.alias ?? "",
 });
 
 const TagsSection = () => {
@@ -62,6 +65,7 @@ const TagsSection = () => {
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState<string | undefined>(undefined);
   const [newTagBlur, setNewTagBlur] = useState(false);
+  const [newTagAlias, setNewTagAlias] = useState("");
 
   // Sync local state when the fetched setting arrives (the fetch is async and
   // completes after mount, so localTags would be empty without this sync).
@@ -98,6 +102,10 @@ const TagsSection = () => {
     setLocalTags((prev) => ({ ...prev, [tagName]: { ...prev[tagName], blur } }));
   };
 
+  const handleAliasChange = (tagName: string, alias: string) => {
+    setLocalTags((prev) => ({ ...prev, [tagName]: { ...prev[tagName], alias } }));
+  };
+
   const handleClearColor = (tagName: string) => {
     setLocalTags((prev) => ({ ...prev, [tagName]: { ...prev[tagName], color: undefined } }));
   };
@@ -121,10 +129,11 @@ const TagsSection = () => {
       toast.error(t("setting.tags.invalid-regex"));
       return;
     }
-    setLocalTags((prev) => ({ ...prev, [name]: { color: newTagColor, blur: newTagBlur } }));
+    setLocalTags((prev) => ({ ...prev, [name]: { color: newTagColor, blur: newTagBlur, alias: newTagAlias } }));
     setNewTagName("");
     setNewTagColor(undefined);
     setNewTagBlur(false);
+    setNewTagAlias("");
   };
 
   const handleSave = async () => {
@@ -133,6 +142,7 @@ const TagsSection = () => {
         name,
         create(UserSetting_TagMetadataSchema, {
           blurContent: meta.blur,
+          alias: meta.alias,
           ...(meta.color ? { backgroundColor: hexToColor(meta.color) } : {}),
         }),
       ]),
@@ -188,6 +198,13 @@ const TagsSection = () => {
                       <option key={tag} value={tag} />
                     ))}
                 </datalist>
+                <Input
+                  className="mt-2"
+                  placeholder={t("setting.tags.alias-placeholder", "Display alias (optional)")}
+                  value={newTagAlias}
+                  onChange={(e) => setNewTagAlias(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddTag()}
+                />
               </div>
 
               <div className="flex h-8 items-center gap-2 rounded-md border border-border bg-background px-2 text-sm text-muted-foreground">
@@ -240,6 +257,14 @@ const TagsSection = () => {
                       <span>{t("setting.tags.matching-rule")}</span>
                       <span className="text-border">/</span>
                       <span>{t("setting.tags.used-count", { count: row.count })}</span>
+                    </div>
+                    <div className="mt-2 pl-6">
+                      <Input
+                        className="text-sm"
+                        placeholder={t("setting.tags.alias-placeholder", "Display alias (optional)")}
+                        value={localTags[row.name].alias}
+                        onChange={(e) => handleAliasChange(row.name, e.target.value)}
+                      />
                     </div>
                   </div>
 
