@@ -56,6 +56,8 @@ const FILTER_CONFIGS: Record<FilterFactor, FilterConfig> = {
   displayTime: {
     icon: CalendarIcon,
     getLabel: (value) => {
+      if (/^\d{4}$/.test(value)) return value;
+      if (/^\d{4}-\d{2}$/.test(value)) return dayjs(value + "-01").format("MMMM YYYY");
       const date = dayjs(value);
       return date.isValid() ? date.format(DATE_FILTER_FORMAT) : value;
     },

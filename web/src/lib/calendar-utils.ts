@@ -56,6 +56,15 @@ export const getLocalMonthTimestampRange = (value: string): LocalTimestampRange 
   return toRange(start, new Date(start.getFullYear(), start.getMonth() + 1, 1));
 };
 
+/** The local calendar year named by `YYYY`, or undefined for an invalid year. */
+export const getLocalYearTimestampRange = (value: string): LocalTimestampRange | undefined => {
+  const year = Number(value);
+  if (!Number.isFinite(year) || year < 1000 || year > 9999) return undefined;
+  const start = new Date(year, 0, 1);
+  const end = new Date(year + 1, 0, 1);
+  return toRange(start, end);
+};
+
 /** The CEL timestamp field a time basis is stored under. */
 export const getTimeBasisField = (timeBasis: MemoTimeBasis): "created_ts" | "updated_ts" =>
   timeBasis === "update_time" ? "updated_ts" : "created_ts";

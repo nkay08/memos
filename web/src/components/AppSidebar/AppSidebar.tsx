@@ -66,6 +66,7 @@ import {
 } from "./sidebar-layout";
 import TagsSection from "./TagsSection";
 import ViewsSection from "./ViewsSection";
+import YearsSection from "./YearsSection";
 
 const NewMemoAction = ({ onClick }: { onClick: () => void }) => {
   const t = useTranslate();
@@ -142,6 +143,7 @@ const CollectionSidebarContent = ({
       {/* Every collection route narrows the same way: views (yours, so signed-in only), days, tags. */}
       {currentUser && <ViewsSection />}
       <TagsSection tagCount={tags} scope={tagStateScope} onSelect={() => setMobileOpen(false)} />
+      {showStatistics && <YearsSection statistics={statistics} onSelect={() => setMobileOpen(false)} />}
     </div>
   );
 };

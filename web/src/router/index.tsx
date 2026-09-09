@@ -11,7 +11,7 @@ import {
   RequireGuestRoute,
   RequireInstanceInitializationRoute,
 } from "./guards";
-import { CALENDAR_ROUTE_PATTERN, ROUTES, SPACE_ROUTE_PATTERN } from "./routes";
+import { CALENDAR_ROUTE_PATTERN, ROUTES, SPACE_ROUTE_PATTERN, YEAR_ROUTE_PATTERN } from "./routes";
 import { SpaceRoute } from "./SpaceRoute";
 
 const AdminSignIn = lazyWithReload(() => import("@/pages/AdminSignIn"));
@@ -32,6 +32,7 @@ const MemoViews = lazyWithReload(() => import("@/pages/MemoViews"));
 const SignIn = lazyWithReload(() => import("@/pages/SignIn"));
 const SignUp = lazyWithReload(() => import("@/pages/SignUp"));
 const UserProfile = lazyWithReload(() => import("@/pages/UserProfile"));
+const YearView = lazyWithReload(() => import("@/pages/YearView"));
 
 // Backward compatibility alias.
 export const Routes = ROUTES;
@@ -93,6 +94,7 @@ export const routeConfig: RouteObject[] = [
                 children: [
                   { path: Routes.ARCHIVED, element: <Archived /> },
                   { path: CALENDAR_ROUTE_PATTERN, element: <Calendar /> },
+                  { path: YEAR_ROUTE_PATTERN, element: <YearView /> },
                   {
                     element: <RequireFullInitializationRoute />,
                     children: [{ path: Routes.VIEWS, element: <MemoViews /> }],
@@ -121,6 +123,7 @@ export const routeConfig: RouteObject[] = [
                               { index: true, element: <Home /> },
                               { path: "explore", element: <Explore /> },
                               { path: "calendar/:year?/:month?/:day?", element: <Calendar /> },
+                              { path: "year/:year", element: <YearView /> },
                             ],
                           },
                           { path: "attachments", element: <Attachments /> },

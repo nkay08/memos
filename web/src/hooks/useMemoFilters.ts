@@ -3,7 +3,7 @@ import { type MemoFilter, useMemoFilterContext } from "@/contexts/MemoFilterCont
 import { type MemoTimeBasis, useView } from "@/contexts/ViewContext";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { useMemoViews } from "@/hooks/useUserQueries";
-import { buildTimestampRangeFilter, getLocalDayTimestampRange, getTimeBasisField } from "@/lib/calendar-utils";
+import { buildTimestampRangeFilter, getLocalDayTimestampRange, getLocalMonthTimestampRange, getLocalYearTimestampRange, getTimeBasisField } from "@/lib/calendar-utils";
 import { combineCELFilters } from "@/lib/cel-filter";
 import { BUILTIN_TASKS_VIEW_FILTER, BUILTIN_TASKS_VIEW_ID, getMemoViewId } from "@/lib/memo-views";
 import { buildMemoCreatorFilter, getVisibilityName } from "@/lib/resource-names";
@@ -73,7 +73,9 @@ export const buildMemoFilter = ({
     } else if (filter.factor === "property.hasLocation") {
       conditions.push(`has_location`);
     } else if (filter.factor === "displayTime") {
-      const range = getLocalDayTimestampRange(filter.value);
+      let range = getLocalDayTimestampRange(filter.value);
+      if (!range) range = getLocalMonthTimestampRange(filter.value);
+      if (!range) range = getLocalYearTimestampRange(filter.value);
       if (range) {
         conditions.push(buildTimestampRangeFilter(getTimeBasisField(timeBasis), range));
       }
