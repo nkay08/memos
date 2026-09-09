@@ -2,7 +2,10 @@
 
 # Memos - Fork
 
+## [New Features](FORK_FEATURES.md)
 ## [Upstream Memos](https://github.com/usememos/memos)
+
+# Memos
 
 <img src="./web/public/logo.webp" alt="" width="96" align="right">
 
