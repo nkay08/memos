@@ -68,8 +68,6 @@ export const TimestampPopover: FC = () => {
   const createTime = useEditorSelector((s) => s.timestamps.createTime);
   const updateTime = useEditorSelector((s) => s.timestamps.updateTime);
 
-  if (!createTime) return null;
-
   return (
     <Popover>
       <PopoverTrigger
@@ -80,7 +78,7 @@ export const TimestampPopover: FC = () => {
           />
         }
       >
-        {formatDate(createTime)}
+        {formatDate(createTime ?? new Date())}
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-2 pt-1 space-y-1">
         <TimestampInput

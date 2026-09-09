@@ -50,9 +50,10 @@ export const useMemoInit = ({
       if (defaultVisibility !== undefined) {
         dispatch(actions.setMetadata({ visibility: defaultVisibility }));
       }
-      if (defaultCreateTime) {
-        dispatch(actions.setTimestamps({ createTime: defaultCreateTime, updateTime: defaultCreateTime }));
-      }
+      dispatch(actions.setTimestamps({
+        createTime: defaultCreateTime ?? new Date(),
+        updateTime: defaultCreateTime ?? new Date(),
+      }));
     }
 
     const cachedCursor = cacheService.loadCursor(key);

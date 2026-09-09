@@ -116,6 +116,7 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
   useEffect(() => {
     if (memo) return;
     if (!isInitialized) return;
+    if (!defaultCreateTime) return;
     dispatch(
       actions.setTimestamps({
         createTime: defaultCreateTime,
